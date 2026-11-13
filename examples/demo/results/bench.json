@@ -1,0 +1,25 @@
+{
+ "n": 1000000,
+ "runs": [
+  {
+   "name": "python loop",
+   "ms": 40.961,
+   "rel_err": 2.0003659212703706e-14
+  },
+  {
+   "name": "generator sum",
+   "ms": 32.219,
+   "rel_err": 3.4890103277971585e-16
+  },
+  {
+   "name": "numpy dot",
+   "ms": 0.12,
+   "rel_err": 0.0
+  }
+ ],
+ "summary": {
+  "speedup": 341.3,
+  "elements": 1000000,
+  "max_rel_err": 2.0003659212703706e-14
+ }
+}

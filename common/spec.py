@@ -193,7 +193,7 @@ class Spec:
                     n = self.num(it["number"])
                     bars.append({"label": self.render(it["label"]), "value": n.value, "text": n.text, "dec": n.dec, "unit": n.unit,
                                  "hl": bool(it.get("highlight"))})
-                    sources.append(n.source)
+                    sources.append(n.source.split(':')[0] if not n.source.startswith('derived') else 'derived')
             else:
                 data = self.file(c["file"])
                 if "rows_path" in c:

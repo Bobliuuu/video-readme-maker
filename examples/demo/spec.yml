@@ -27,7 +27,7 @@ intro: |
   and one command produces this README and a narrated explainer video.
 
 video:
-  caption: "Explainer (about 45 s): the problem, the idea, the numbers"
+  caption: "Explainer (under a minute): the problem, the idea, the numbers"
   fps: 30
   voice: {engine: auto, voice: null}
   scenes:

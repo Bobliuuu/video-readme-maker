@@ -2,6 +2,10 @@
 from .theme import FONT, MONO, esc
 
 
+def _tick(v):
+    return f"{v:,.0f}" if abs(v) >= 1000 else f"{v:.4g}"
+
+
 def _nice(v):
     import math
     if v <= 0:
@@ -54,9 +58,9 @@ def _axes(m, th, W, H, L, R, T, B, xmin, xmax, ymin, ymax):
         v = ymin + (ymax - ymin) * i / 4
         y = B - (B - T) * i / 4
         s.append(f'<line x1="{L}" x2="{R}" y1="{y:.0f}" y2="{y:.0f}" stroke="{th["line"]}" stroke-width="1"/>')
-        s.append(f'<text x="{L-10}" y="{y+4:.0f}" text-anchor="end" font-family="{MONO}" font-size="12" fill="{th["muted"]}">{v:,.4g}</text>')
+        s.append(f'<text x="{L-10}" y="{y+4:.0f}" text-anchor="end" font-family="{MONO}" font-size="12" fill="{th["muted"]}">{_tick(v)}</text>')
         xv = xmin + (xmax - xmin) * i / 4
-        s.append(f'<text x="{L+(R-L)*i/4:.0f}" y="{B+20}" text-anchor="middle" font-family="{MONO}" font-size="12" fill="{th["muted"]}">{xv:,.4g}</text>')
+        s.append(f'<text x="{L+(R-L)*i/4:.0f}" y="{B+20}" text-anchor="middle" font-family="{MONO}" font-size="12" fill="{th["muted"]}">{_tick(xv)}</text>')
     if m.get("xlabel"):
         s.append(f'<text x="{(L+R)/2}" y="{B+44}" text-anchor="middle" font-family="{FONT}" font-size="13" fill="{th["muted"]}">{esc(m["xlabel"])}</text>')
     if m.get("ylabel"):

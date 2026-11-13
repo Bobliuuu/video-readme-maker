@@ -1,0 +1,9 @@
+elements,series,ms
+100000,python loop,2.789
+100000,numpy dot,0.0072
+250000,python loop,6.875
+250000,numpy dot,0.0284
+500000,python loop,14.129
+500000,numpy dot,0.4187
+1000000,python loop,31.778
+1000000,numpy dot,0.139
