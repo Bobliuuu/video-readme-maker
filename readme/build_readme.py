@@ -62,6 +62,9 @@ def build(spec_path, check=True):
         parts = []
         if s.get("body"):
             parts.append(R(s["body"]).strip())
+        if s.get("body_file"):  # verbatim markdown kept in the project (not templated), e.g. docs/readme/01-intro.md
+            with open(os.path.join(root, s["body_file"])) as bf:
+                parts.append(bf.read().strip())
         if s.get("highlights"):
             hl = s["highlights"]
             head = "| " + " | ".join(R(x["label"]) for x in hl) + " |"
@@ -142,7 +145,7 @@ def build(spec_path, check=True):
     env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__))), undefined=StrictUndefined, keep_trailing_newline=True)
     md = env.get_template("README.md.j2").render(
         hero_path=f"{adir}/hero.svg", title=title, emoji=proj.get("emoji", ""), tagline=R(proj["tagline"]), badges=badges, nav=nav_md,
-        video_block=vb, intro=R(d.get("intro", "")).strip(), body="\n\n".join(secs), footer=R(d.get("footer", "")))
+        video_block=vb, intro=(R(d.get("intro", "")).strip() + ("\n\n" + open(os.path.join(root, d["intro_file"])).read().strip() if d.get("intro_file") else "")).strip(), body="\n\n".join(secs), footer=R(d.get("footer", "")))
     md = re.sub(r"\n{3,}", "\n\n", md)
     if check:
         leaks.check_public(sp.public_strings() + [md], "README")
