@@ -38,7 +38,7 @@ def split_caption(text, maxc=96):
 
 def resolve_scene(sp, s, idx):
     t = s["type"]
-    o = {k: (sp.render(v) if isinstance(v, (str, list, dict)) and k not in ("code", "type", "chart", "table", "diagram", "number", "ratio") else v)
+    o = {k: (sp.render(v) if isinstance(v, (str, list, dict)) and k not in ("code", "type", "chart", "table", "diagram", "number", "ratio", "k_number") else v)
          for k, v in s.items()}
     o["id"] = f"s{idx:02d}_{t}"
     if t == "chart":
@@ -60,7 +60,9 @@ def resolve_scene(sp, s, idx):
         repo = sp.d["project"].get("repo")
         o.setdefault("title", sp.d["project"]["name"])
         o.setdefault("url", f"github.com/{repo}" if repo else "")
-    elif t not in ("title", "problem", "idea", "caveats", "code", "terminal"):
+    elif t == "passes":
+        o["k"] = int(sp.num(s["k_number"]).value)
+    elif t not in ("title", "problem", "idea", "caveats", "code", "terminal", "cards", "bits"):
         raise SpecError(f"unknown scene type '{t}'")
     return o
 
@@ -91,7 +93,7 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
         if say and not silent:
             wav = os.path.join(aud, sc["id"] + ".wav")
             used = tts.synth(say, wav, engine=eng_want, voice=vcfg.get("voice"), model=vcfg.get("model", "gpt-4o-mini-tts"),
-                             instructions=vcfg.get("instructions"), pad_ms=vcfg.get("pad_ms", 200))
+                             instructions=vcfg.get("instructions"), pad_ms=vcfg.get("pad_ms", 200), speed=vcfg.get("speed", 1.0))
             sc["audio"] = wav
             alen = tts.duration(wav)
         else:
@@ -121,7 +123,12 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
         for sc in scenes:
             for c in sc["caps"]:
                 f.write(f"{n}\n{srt_time(sc['start']+c['t0'])} --> {srt_time(sc['start']+c['t1'])}\n{c['text']}\n\n"); n += 1
-    shutil.copy(os.path.join(out, "captions.srt"), os.path.join(adir, "explainer.srt"))
+    def outp(key, default):
+        pth = os.path.join(sp.root, V.get(key) or os.path.join(d.get("assets_dir", "assets"), default))
+        os.makedirs(os.path.dirname(pth), exist_ok=True)
+        return pth
+    srt_out, poster_out, mp4_out, gif_out = outp("srt", "explainer.srt"), outp("poster", "poster.png"), outp("mp4", "explainer.mp4"), outp("gif", "preview.gif")
+    shutil.copy(os.path.join(out, "captions.srt"), srt_out)
     print(f"[video] {len(scenes)} scenes, {total:.1f}s")
     if skip_render:
         return data
@@ -134,7 +141,7 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
     sh(node, os.path.join(HERE, "render.js"), "--data", dj, "--out", out, "--conc", V.get("concurrency", 4))
     sh(node, os.path.join(HERE, "render.js"), "--data", dj, "--out", out, "--stills", V.get("poster_at", round(scenes[0]["dur"] * .65, 1)))
     poster_src = [f for f in os.listdir(os.path.join(out, "stills"))][0]
-    shutil.copy(os.path.join(out, "stills", poster_src), os.path.join(adir, "poster.png"))
+    shutil.copy(os.path.join(out, "stills", poster_src), poster_out)
 
     # ---- audio: voice track + ducked generated music
     voice = np.zeros(int((total + 1) * SR), dtype=np.float32)
@@ -164,7 +171,7 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
         w.writeframes((mix.T * 32767).astype("<i2").tobytes())
 
     # ---- mux with loudness normalisation, size-capped video encode
-    final = os.path.join(adir, "explainer.mp4")
+    final = mp4_out
     cap_mb = V.get("max_mb", 9.0)
     vbr = max(300, int(cap_mb * 8 * 1000 / total - 160))
     sh("ffmpeg", "-y", "-loglevel", "error", "-i", os.path.join(out, "video_silent.mp4"), "-i", mw,
@@ -173,12 +180,32 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
        "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-movflags", "+faststart", "-shortest", final)
 
     # ---- preview gif: whole video time-compressed to ~14 s
-    gif = os.path.join(adir, "preview.gif")
+    gif = gif_out
     speed = max(1.0, total / 14)
     sh("ffmpeg", "-y", "-loglevel", "error", "-i", os.path.join(out, "video_silent.mp4"), "-vf",
        f"setpts=PTS/{speed:.3f},fps=8,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=4", "-loop", "0", gif)
-    ok, msg = leaks.external_scan([final, gif, os.path.join(adir, "explainer.srt")])
+    for i, sc in enumerate(scenes):
+        if sc.get("gif"):
+            scene_gif(sp, out, data, sc, outp_path=os.path.join(sp.root, sc["gif"]))
+    ok, msg = leaks.external_scan([final, gif, srt_out])
     return verify(final, gif, total)
+
+
+def scene_gif(sp, out, data, sc, outp_path):
+    """Render one scene (no captions / header) to an animated GIF. Scene keys: gif, gif_start, gif_end, gif_speed, gif_width, gif_fps."""
+    node = shutil.which("node")
+    gd = os.path.join(out, "gifwork_" + sc["id"]); shutil.rmtree(gd, ignore_errors=True); os.makedirs(gd)
+    dd = json.loads(json.dumps(data)); dd["meta"]["captions"] = False; dd["meta"]["chrome"] = False
+    dj = os.path.join(gd, "data.json"); json.dump(dd, open(dj, "w"))
+    sh(node, os.path.join(HERE, "render.js"), "--data", dj, "--out", gd, "--scene", sc["id"], "--conc", 1)
+    seg = os.path.join(gd, "seg", sc["id"] + ".mp4")
+    t0, t1 = float(sc.get("gif_start", 0)), float(sc.get("gif_end", sc["dur"]))
+    sp_ = float(sc.get("gif_speed", 1)); w = int(sc.get("gif_width", 960)); fps = int(sc.get("gif_fps", 12))
+    os.makedirs(os.path.dirname(outp_path), exist_ok=True)
+    sh("ffmpeg", "-y", "-loglevel", "error", "-ss", t0, "-t", t1 - t0, "-i", seg, "-vf",
+       f"setpts=PTS/{sp_},fps={fps},scale={w}:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=96[p];[b][p]paletteuse=dither=bayer:bayer_scale=4", "-loop", "0", outp_path)
+    print(f"[gif] {os.path.relpath(outp_path, sp.root)} {os.path.getsize(outp_path)/1e6:.2f} MB")
+    shutil.rmtree(gd, ignore_errors=True)
 
 
 def verify(final, gif=None, total=None):

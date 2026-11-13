@@ -126,6 +126,10 @@ class Spec:
 
     def render(self, text):
         """Render a string with jinja; `n.<name>` are sourced numbers. Undefined -> loud error."""
+        if isinstance(text, list):
+            return [self.render(x) for x in text]
+        if isinstance(text, dict):
+            return {k: self.render(v) for k, v in text.items()}
         if not isinstance(text, str):
             return text
         try:
@@ -208,6 +212,31 @@ class Spec:
                     bars.append({"label": str(r[c["label"]]), "value": v, "text": txt + c.get("unit", ""), "dec": dec,
                                  "unit": c.get("unit", ""), "hl": str(r[c["label"]]) == str(c.get("highlight"))})
             m["bars"] = bars
+        elif typ == "gbar":
+            data = self.file(c["file"])
+            if "rows_path" in c:
+                data = dig(data, c["rows_path"], f"chart {c.get('id')}")
+            sources.append(c["file"])
+            cats, names = [], []
+            for r in data:
+                for k in (c["cat"], c["series"], c["y"]):
+                    if k not in r:
+                        raise SpecError(f"chart {c.get('id')}: '{k}' missing in {c['file']}")
+                if str(r[c["cat"]]) not in cats:
+                    cats.append(str(r[c["cat"]]))
+                if str(r[c["series"]]) not in names:
+                    names.append(str(r[c["series"]]))
+            ser = []
+            for nm in names:
+                vals, texts = [], []
+                for ct in cats:
+                    hit = [r for r in data if str(r[c["cat"]]) == ct and str(r[c["series"]]) == nm]
+                    if hit:
+                        v = float(hit[0][c["y"]]); vals.append(v); texts.append(_fmt(v, c.get("fmt"))[0])
+                    else:
+                        vals.append(None); texts.append("")
+                ser.append({"name": nm, "vals": vals, "texts": texts})
+            m.update(cats=cats, series=ser, value_labels=c.get("value_labels", True))
         elif typ in ("line", "scatter"):
             data = self.file(c["file"])
             if "rows_path" in c:
@@ -224,8 +253,19 @@ class Spec:
                     groups.setdefault(str(r.get(c.get("series", "_"), "")) if c.get("series") else "", []).append((float(r[c["x"]]), float(r[c["y"]])))
                 m["series"] = [{"name": k, "pts": sorted(v), "hl": k == str(c.get("highlight"))} for k, v in groups.items()]
             else:
-                m["pts"] = [{"label": str(r.get(c.get("label", ""), "")) if c.get("label") else "", "x": float(r[c["x"]]),
-                             "y": float(r[c["y"]]), "hl": str(r.get(c.get("label", ""), "")) == str(c.get("highlight"))} for r in data]
+                m["pts"] = []
+                for r in data:
+                    q = {"label": str(r.get(c.get("label", ""), "")) if c.get("label") else "", "x": float(r[c["x"]]),
+                         "y": float(r[c["y"]]), "hl": str(r.get(c.get("label", ""), "")) == str(c.get("highlight"))}
+                    if c.get("group"):
+                        q["group"] = str(r.get(c["group"], ""))
+                    for k in ("dx", "dy", "anchor"):
+                        if k in r:
+                            q[k] = r[k] if k == "anchor" else float(r[k])
+                    m["pts"].append(q)
+                for k in ("xscale", "yscale", "linthresh", "xlim", "ylim", "xticks", "yticks", "group_colors", "group_labels", "corner"):
+                    if k in c:
+                        m[k] = c[k]
         else:
             raise SpecError(f"chart {c.get('id')}: unknown type {typ}")
         m["sources"] = sorted(set(sources))

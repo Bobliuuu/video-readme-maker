@@ -85,9 +85,9 @@ def _openai(text, voice, model, instructions, out):
         raise RuntimeError(f"OpenAI TTS HTTP {e.code}: {e.read()[:200].decode(errors='replace')}")  # body never contains the key
 
 
-def _kokoro(text, voice, out):
+def _kokoro(text, voice, out, speed=1.0):
     script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kokoro_synth.py")
-    subprocess.run([VENV_PY, script, KOKORO_DIR, voice, out], input=text.encode(), check=True)
+    subprocess.run([VENV_PY, script, KOKORO_DIR, voice, out, str(speed)], input=text.encode(), check=True)
 
 
 def _piper(text, voice, out):
@@ -102,19 +102,31 @@ def _say(text, voice, out):
     os.remove(aiff)
 
 
-def synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200):
+def synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200, speed=1.0):
     """Synthesize `text` to a mono 44.1k wav with silence trimmed and pad_ms padding each side. Returns engine used."""
+    try:
+        return _synth(text, out_wav, engine, voice, model, instructions, pad_ms, speed)
+    except Exception as e:  # OpenAI failure: fall back to local Kokoro, then say
+        if pick_engine(engine) == "openai":
+            print(f"[tts] openai failed ({type(e).__name__}); falling back")
+            for fb in ("kokoro", "say"):
+                if fb == "say" or kokoro_ready():
+                    return _synth(text, out_wav, fb, None, model, instructions, pad_ms, speed)
+        raise
+
+
+def _synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200, speed=1.0):
     engine = pick_engine(engine)
     instructions = instructions or DEFAULT_INSTRUCTIONS
     voice = voice or {"openai": "alloy", "kokoro": "af_heart", "piper": "en_US-lessac-medium", "say": None}[engine]
     if engine == "say" and voice in ("alloy", "af_heart"):
         voice = None
     os.makedirs(os.path.join(CACHE, "tts"), exist_ok=True)
-    raw = os.path.join(CACHE, "tts", _hash(engine, str(voice), model, instructions if engine == "openai" else "", text) + ".wav")
+    raw = os.path.join(CACHE, "tts", _hash(engine, str(voice), model, instructions if engine == "openai" else "", f"speed={speed}" if engine == "kokoro" else "", "kk2" if engine == "kokoro" else "", text) + ".wav")
     if not os.path.exists(raw):
         tmp = raw + ".tmp.wav"
         try:
-            {"openai": lambda: _openai(text, voice, model, instructions, tmp), "kokoro": lambda: _kokoro(text, voice, tmp),
+            {"openai": lambda: _openai(text, voice, model, instructions, tmp), "kokoro": lambda: _kokoro(text, voice, tmp, speed),
              "piper": lambda: _piper(text, voice, tmp), "say": lambda: _say(text, voice, tmp)}[engine]()
         except Exception:
             if os.path.exists(tmp):

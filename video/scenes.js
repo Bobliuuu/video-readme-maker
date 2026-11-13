@@ -16,6 +16,43 @@ function bullets(t, d, p) {
   }).join('');
 }
 
+
+/* ---- advanced charts (grouped bars, scatter with log/symlog axes) ---- */
+const SCALE = (v, lo, hi, kind, lin = 1) => { const f = { linear: x => x, log: x => Math.log10(Math.max(x, 1e-12)), symlog: x => Math.sign(x) * Math.log10(1 + Math.abs(x) / lin) }[kind || 'linear']; return (f(v) - f(lo)) / ((f(hi) - f(lo)) || 1) };
+const PAL = ['var(--a)', 'var(--b)', 'var(--c)', 'var(--good)', '#a78bfa', '#fb923c', '#8a98ad'];
+const GCOL = n => ({ accent: 'var(--a)', accent2: 'var(--b)', accent3: 'var(--c)', good: 'var(--good)', muted: '#8a98ad' }[n] || n);
+function gbarSvg(t, d, m, W, H) {
+  const L = 110, R = W - 30, T = 24, B = H - 150, cats = m.cats, ser = m.series;
+  const vmax = Math.max(...ser.flatMap(s => s.vals.filter(v => v !== null))) * 1.12, gw = (R - L) / cats.length, bw = Math.min(64, gw * .82 / ser.length);
+  let g = [0, 1, 2, 3, 4].map(i => `<line x1="${L}" x2="${R}" y1="${B - (B - T) * i / 4}" y2="${B - (B - T) * i / 4}" stroke="#263044"/><text x="${L - 14}" y="${B - (B - T) * i / 4 + 8}" text-anchor="end" font-size="22" fill="#8a98ad" class="mono">${(vmax * i / 4).toPrecision(2)}</text>`).join('');
+  cats.forEach((c, ci) => {
+    const gx = L + gw * ci + gw / 2 - bw * ser.length / 2, kc = prog(t, .6 + ci * (Math.min(d * .5, 6) / cats.length), 1.2);
+    ser.forEach((se, si) => {
+      const v = se.vals[ci]; if (v === null) return; const h = (B - T) * v / vmax * kc;
+      g += `<rect x="${gx + si * bw}" y="${B - h}" width="${bw - 5}" height="${h}" rx="6" fill="${PAL[si % 7]}"/><text x="${gx + si * bw + (bw - 5) / 2}" y="${B - h - 10}" text-anchor="middle" font-size="${ser.length > 4 ? 19 : 26}" class="mono" fill="#e6edf6" opacity="${kc}">${esc(se.texts[ci])}</text>`
+    });
+    g += `<text x="${L + gw * ci + gw / 2}" y="${B + 40}" text-anchor="middle" font-size="30" fill="#e6edf6" opacity="${prog(t, .4 + ci * .3)}">${esc(c)}</text>`
+  });
+  let lx = L; ser.forEach((se, si) => { g += `<rect x="${lx}" y="${H - 66}" width="26" height="26" rx="5" fill="${PAL[si % 7]}"/><text x="${lx + 38}" y="${H - 44}" font-size="28" fill="#c8d3e3">${esc(se.name)}</text>`; lx += 90 + 16 * se.name.length });
+  return g
+}
+function scatterAdvSvg(t, d, m, W, H) {
+  const L = 130, R = W - 60, T = 20, B = H - 110, lin = m.linthresh || 1;
+  const X = v => L + (R - L) * SCALE(v, m.xlim[0], m.xlim[1], m.xscale, lin), Y = v => B - (B - T) * SCALE(v, m.ylim[0], m.ylim[1], m.yscale, lin);
+  let g = m.yticks.map(v => `<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#263044"/><text x="${L - 14}" y="${Y(v) + 8}" text-anchor="end" font-size="22" fill="#8a98ad" class="mono">${+v.toPrecision(3)}</text>`).join('')
+    + m.xticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${B}" stroke="#263044" stroke-dasharray="4 8"/><text x="${X(v)}" y="${B + 34}" text-anchor="middle" font-size="22" fill="#8a98ad" class="mono">${+v.toPrecision(3)}</text>`).join('')
+    + `<text x="${(L + R) / 2}" y="${B + 76}" text-anchor="middle" font-size="26" fill="#8a98ad">${esc(m.xlabel)}</text><text x="34" y="${(T + B) / 2}" transform="rotate(-90 34 ${(T + B) / 2})" text-anchor="middle" font-size="26" fill="#8a98ad">${esc(m.ylabel)}</text>`
+    + `<text x="${R - 16}" y="${B - 16}" text-anchor="end" font-size="30" font-weight="800" fill="var(--good)" opacity="${prog(t, 1)}">${esc(m.corner ? 'lower left: ' + m.corner : '')}</text>`;
+  const rank = { ours: 0, accurate: 1, other: 2 }, order = [...m.pts.keys()].sort((a, b) => (rank[m.pts[a].group] ?? 3) - (rank[m.pts[b].group] ?? 3));
+  order.forEach((pi, oi) => {
+    const q = m.pts[pi], k = prog(t, .8 + oi * Math.min(.7, (d - 5) / order.length), .45), x = X(q.x), y = Y(q.y), col = GCOL(m.group_colors[q.group] || 'muted');
+    const f = 1.75, dx = (q.dx ?? 11) * f, dy = (q.dy ?? 4) * f;
+    g += `<g opacity="${k}"><circle cx="${x}" cy="${y}" r="${(q.hl ? 20 : 13) * (.6 + .4 * k)}" fill="${col}" stroke="#0b0f17" stroke-width="3"/><text x="${x + dx}" y="${y + dy + 4}" text-anchor="${q.anchor || 'start'}" font-size="${q.hl ? 30 : 25}" font-weight="${q.hl ? 800 : 500}" fill="#e6edf6" style="paint-order:stroke;stroke:#0b0f17;stroke-width:6px">${esc(q.label)}</text></g>`
+  });
+  let lx = L; Object.entries(m.group_labels).forEach(([k, lab]) => { g += `<circle cx="${lx + 12}" cy="${H - 20}" r="11" fill="${GCOL(m.group_colors[k] || 'muted')}"/><text x="${lx + 32}" y="${H - 11}" font-size="26" fill="#c8d3e3">${esc(lab)}</text>`; lx += 70 + 15 * lab.length });
+  return g
+}
+
 const S = {
   title(t, d, p) {
     return `<div style="height:100%;display:flex;flex-direction:column;justify-content:center">
@@ -65,10 +102,12 @@ const S = {
     <div class="sub mono" style="font-size:22px;margin-top:18px;opacity:${prog(t, 1)}">${m.source ? 'source: ' + esc(m.source) : ''}</div>`
   },
   chart(t, d, p) {
-    const m = p.chart, W = 1680; let H = 700; if (m.type === 'bar') H = Math.min(110, 640 / m.bars.length) * m.bars.length + 60;
+    const m = p.chart, W = 1680; let H = 700; if (m.type === 'gbar' || (m.type === 'scatter' && m.xlim)) H = 660; if (m.type === 'bar') H = Math.min(110, 640 / m.bars.length) * m.bars.length + 60;
     let svg = '';
     const k = prog(t, .4, Math.min(3, d * .6));
-    if (m.type === 'bar') {
+    if (m.type === 'gbar') svg = gbarSvg(t, d, m, W, H);
+    else if (m.type === 'scatter' && m.xlim) svg = scatterAdvSvg(t, d, m, W, H);
+    else if (m.type === 'bar') {
       const bars = m.bars, vmax = Math.max(...bars.map(b => b.value)), lw = 430, rh = Math.min(110, 640 / bars.length);
       svg = bars.map((b, i) => {
         const kk = prog(t, .4 + i * .45, 1.6), y = 30 + i * rh, w = Math.max(6, (W - lw - 330) * b.value / vmax * kk);
@@ -131,6 +170,60 @@ const S = {
     return `<div class="h2 grad" style="opacity:${prog(t, .05)}">${esc(p.heading || '')}</div><div class="card" style="overflow:hidden"><div style="background:#1b2435;padding:14px 22px;display:flex;gap:10px"><b style="width:16px;height:16px;border-radius:50%;background:#ff5f57"></b><b style="width:16px;height:16px;border-radius:50%;background:#febc2e"></b><b style="width:16px;height:16px;border-radius:50%;background:#28c840"></b></div>
     <pre class="mono" style="padding:30px 40px;min-height:520px;font-size:30px">${out}</pre></div>`
   },
+  passes(t, d, p) {
+    // K separate passes over the KV pages versus one shared pass. Pure function of t.
+    const K = p.k || 8, NP = 28, W = 1680, pw = 20, gap = 4, x0 = 150, laneH = 44;
+    const T0 = 1.2, TT = Math.max(4, d - 4.2), u = clamp((t - T0) / TT), uL = u, uR = clamp(u * K);
+    const lane = (y, prog_, label, col, qcol) => {
+      let g = `<text x="0" y="${y + 29}" font-size="24" class="mono" fill="${qcol}">${label}</text>`;
+      for (let i = 0; i < NP; i++) { const on = prog_ * NP > i; g += `<rect x="${x0 + i * (pw + gap)}" y="${y}" width="${pw}" height="${laneH - 8}" rx="4" fill="${on ? col : '#1c2638'}"/>` }
+      return g
+    };
+    const useLaneH = laneH + 8;
+    let left = '', cnt = 0;
+    for (let i = 0; i < K; i++) { const pi = clamp(uL * K - i); cnt += pi; left += lane(i * useLaneH, pi, 'q' + i, 'var(--b)', '#c8d3e3') }
+    const LW = x0 + NP * (pw + gap);
+    const rpass = uR, rdone = rpass >= 1;
+    let right = lane(0, rpass, 'q0..q' + (K - 1), 'var(--a)', 'var(--a)');
+    right += Array.from({ length: K }, (_, i) => `<circle cx="${x0 - 8 - 0}" cy="${laneH / 2 - 4}" r="0"/>`).join('');
+    const qs = Array.from({ length: K }, (_, i) => `<rect x="${x0 + 0 + i * 20}" y="${useLaneH + 20}" width="16" height="16" rx="4" fill="var(--a)" opacity="${prog(t, .6 + i * .08, .3)}"/>`).join('');
+    const mid = (K * useLaneH) / 2 - 22;
+    return `<div class="h2 grad" style="opacity:${prog(t, .05)}">${esc(p.heading || '')}</div>
+    <div style="display:flex;gap:70px;justify-content:center;align-items:flex-start">
+      <div class="card" style="padding:30px 34px;width:820px;opacity:${prog(t, .2)}">
+        <div style="font-size:34px;font-weight:800;color:var(--b);margin-bottom:22px">${esc(p.left_title)}</div>
+        <svg width="${LW + 10}" height="${K * useLaneH}" viewBox="0 0 ${LW + 10} ${K * useLaneH}">${left}</svg>
+        <div class="mono" style="font-size:38px;margin-top:24px;color:var(--b)">${esc(p.left_traffic)}: <b>${(cnt).toFixed(1)}</b> / ${K}</div>
+        <div class="sub" style="font-size:28px;margin-top:6px">${esc(p.left_sub || '')}</div></div>
+      <div class="card" style="padding:30px 34px;width:820px;opacity:${prog(t, .5)};border-color:${rdone ? 'var(--good)' : 'var(--line)'}">
+        <div style="font-size:34px;font-weight:800;color:var(--a);margin-bottom:22px">${esc(p.right_title)}</div>
+        <svg width="${LW + 10}" height="${K * useLaneH}" viewBox="0 0 ${LW + 10} ${K * useLaneH}"><g transform="translate(0 ${mid})">${right}</g>${Array.from({ length: K }, (_, i) => `<rect x="${x0 + i * 30}" y="${mid + laneH + 6}" width="22" height="14" rx="3" fill="var(--a)" opacity="${prog(t, .6 + i * .08, .3)}"/>`).join('')}<text x="${x0 + K * 30 + 12}" y="${mid + laneH + 19}" font-size="22" class="mono" fill="#8a98ad" opacity="${prog(t, 1.2)}">${esc(p.group_label || '')}</text></svg>
+        <div class="mono" style="font-size:38px;margin-top:24px;color:var(--a)">${esc(p.right_traffic)}: <b>${Math.min(1, rpass).toFixed(1)}</b> / 1${rdone ? '  <span style="color:var(--good)">done</span>' : ''}</div>
+        <div class="sub" style="font-size:28px;margin-top:6px">${esc(p.right_sub || '')}</div></div></div>`
+  },
+  cards(t, d, p) {
+    const c = p.cards, cols = ['var(--b)', 'var(--good)', 'var(--a)', 'var(--c)'];
+    return `<div class="h2 grad" style="opacity:${prog(t, .05)}">${esc(p.heading || '')}</div>
+    <div style="display:grid;grid-template-columns:repeat(${c.length},1fr);gap:34px">` + c.map((x, i) => {
+      const k = prog(t, spread(i, c.length, d) * .8 + .3);
+      return `<div class="card" style="padding:34px 38px;opacity:${k};transform:translateY(${(1 - k) * 34}px);border-color:${cols[i % 4]}">
+      <div style="font-size:46px;font-weight:800;color:${cols[i % 4]}">${esc(x.title)}</div>
+      <div class="mono" style="font-size:26px;color:var(--muted);margin:8px 0 22px">${esc(x.sub || '')}</div>` +
+        (x.lines || []).map((l, j) => `<div style="font-size:30px;line-height:1.35;margin:0 0 12px;opacity:${prog(t, spread(i, c.length, d) * .8 + .8 + j * .25)}">${esc(l)}</div>`).join('') + `</div>`
+    }).join('') + `</div>` + (p.footer ? `<div class="card" style="margin-top:34px;padding:22px 34px;font-size:32px;border-color:var(--good);opacity:${prog(t, Math.max(3, d * .55))}">${esc(p.footer)}</div>` : '')
+  },
+  bits(t, d, p) {
+    const N = p.cells || 32, cw = 40, W = N * cw + 12 + 100, sc = prog(t, 1.0, .6), f = x => esc(x || '');
+    let g = ''; for (let i = 0; i < N; i++) { const k = prog(t, .5 + i * .025, .3); g += `<rect x="${i * cw}" y="0" width="${cw - 4}" height="86" rx="6" fill="var(--a)" opacity="${.18 + .8 * k * (i % 2 ? .75 : 1)}"/><text x="${i * cw + (cw - 4) / 2}" y="54" text-anchor="middle" font-size="16" class="mono" fill="#e6edf6" opacity="${k}">${i % 8 === 0 ? 'e2m1' : ''}</text>` }
+    g += `<rect x="${N * cw + 12}" y="0" width="100" height="86" rx="6" fill="var(--b)" opacity="${sc}"/><text x="${N * cw + 62}" y="54" text-anchor="middle" font-size="24" font-weight="800" class="mono" fill="#0b0f17" opacity="${sc}">UE8M0</text>`;
+    return `<div class="h2 grad" style="opacity:${prog(t, .05)}">${esc(p.heading || '')}</div>
+    <div class="card" style="padding:34px 40px;opacity:${prog(t, .2)}"><div class="mono" style="font-size:26px;color:var(--muted);margin-bottom:16px">${f(p.row_label)}</div>
+      <svg width="${W}" height="96" viewBox="0 0 ${W} 96" style="max-width:100%">${g}</svg>
+      <div style="display:flex;justify-content:space-between;font-size:28px;margin-top:12px;color:var(--muted)"><span style="opacity:${prog(t, 1)}">${f(p.cells_label)}</span><span style="color:var(--b);opacity:${sc}">${f(p.scale_label)}</span></div></div>
+    <div style="display:grid;grid-template-columns:repeat(${p.sizes.length},1fr);gap:28px;margin-top:34px">` + p.sizes.map((x, i) => {
+      const k = prog(t, 2 + i * .6 + (d > 14 ? 3 : 0)); return `<div class="card" style="padding:26px 30px;text-align:center;opacity:${k};border-color:${x.hl ? 'var(--good)' : 'var(--line)'}"><div class="mono" style="font-size:72px;font-weight:800;color:${x.hl ? 'var(--good)' : 'var(--muted)'}">${esc(x.value)}</div><div style="font-size:28px;margin-top:6px">${esc(x.label)}</div></div>`
+    }).join('') + `</div>`
+  },
   end(t, d, p) {
     return `<div style="height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
     <div class="h1 grad" style="opacity:${prog(t, .2, .9)}">${esc(p.title)}</div>
@@ -143,6 +236,7 @@ let SC = [];
 function build() {
   const th = D.meta.theme || {};
   for (const [k, v] of Object.entries({ bg: '--bg', panel: '--panel', line: '--line', text: '--text', muted: '--muted', accent: '--a', accent2: '--b', accent3: '--c', good: '--good' })) if (th[k]) document.documentElement.style.setProperty(v, th[k]);
+  if (D.meta.chrome === false) { $('#hdr').style.display = 'none'; $('#bar').style.display = 'none' }
   $('#hname').textContent = D.meta.name; let st = 0;
   SC = D.scenes.map(s => { const o = { ...s, start: st }; st += s.dur; o.el = document.createElement('div'); o.el.className = 'scene'; o.el.style.display = 'none'; $('#scenes').appendChild(o.el); return o });
   window.TOTAL = st;

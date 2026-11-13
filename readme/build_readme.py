@@ -58,7 +58,7 @@ def build(spec_path, check=True):
     def img_md(rel, alt):
         return f"<p align=\"center\"><img src=\"{rel}\" alt=\"{alt}\" width=\"100%\"></p>"
 
-    def render_section(s):
+    def render_section(s, nested=False):
         parts = []
         if s.get("body"):
             parts.append(R(s["body"]).strip())
@@ -82,8 +82,14 @@ def build(spec_path, check=True):
             m = sp.diagram_by_id(gid)
             write(f"{adir}/{gid}.svg", diagram_svg(m, th))
             parts.append(img_md(f"{adir}/{gid}.svg", m["title"] or gid))
+        for im in s.get("images", []) or []:
+            w = im.get("width", "100%")
+            parts.append(f'<p align="center"><img src="{im["src"]}" alt="{R(im.get("alt", ""))}" width="{w}"></p>')
         for dt in s.get("details", []) or []:
-            parts.append(f"<details>\n<summary>{R(dt['summary'])}</summary>\n\n{R(dt['body']).strip()}\n\n</details>")
+            inner = render_section(dt, nested=True)
+            parts.append(f"<details>\n<summary>{R(dt['summary'])}</summary>\n\n{inner.strip()}\n\n</details>")
+        if s.get("after"):
+            parts.append(R(s["after"]).strip())
         return "\n\n".join(parts)
 
     secs, nav = [], []
