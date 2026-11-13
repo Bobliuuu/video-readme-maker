@@ -137,7 +137,7 @@ def gbar_svg(m, th):
     """Grouped vertical bars: categories on x, one bar per series."""
     W, H, L, R, T, B = 980, 460, 70, 950, 100, 372
     cats, ser = m["cats"], m["series"]
-    vmax = max(v for se in ser for v in se["vals"] if v is not None) * 1.12
+    vmax = _nice(max(v for se in ser for v in se["vals"] if v is not None) * 1.08)
     pal = [th["accent"], th["accent2"], th["accent3"], th["good"], "#a78bfa", "#fb923c", th["muted"]]
     s = _head(m, th, W, H)
     for i in range(5):

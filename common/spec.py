@@ -179,6 +179,8 @@ class Spec:
                 "highlight": hl_idx, "source": t.get("source", source), "align": [c.get("align", "left") for c in cols]}
 
     def _cell(self, v, c):
+        if v is None:
+            return "-"
         if isinstance(v, (int, float)) and not isinstance(v, bool):
             return _fmt(v, c.get("fmt"))[0] + c.get("unit", "")
         return str(v)

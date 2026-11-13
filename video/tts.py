@@ -102,20 +102,20 @@ def _say(text, voice, out):
     os.remove(aiff)
 
 
-def synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200, speed=1.0):
+def synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200, speed=1.0, tempo=1.0):
     """Synthesize `text` to a mono 44.1k wav with silence trimmed and pad_ms padding each side. Returns engine used."""
     try:
-        return _synth(text, out_wav, engine, voice, model, instructions, pad_ms, speed)
+        return _synth(text, out_wav, engine, voice, model, instructions, pad_ms, speed, tempo)
     except Exception as e:  # OpenAI failure: fall back to local Kokoro, then say
         if pick_engine(engine) == "openai":
             print(f"[tts] openai failed ({type(e).__name__}); falling back")
             for fb in ("kokoro", "say"):
                 if fb == "say" or kokoro_ready():
-                    return _synth(text, out_wav, fb, None, model, instructions, pad_ms, speed)
+                    return _synth(text, out_wav, fb, None, model, instructions, pad_ms, speed, tempo)
         raise
 
 
-def _synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200, speed=1.0):
+def _synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", instructions=None, pad_ms=200, speed=1.0, tempo=1.0):
     engine = pick_engine(engine)
     instructions = instructions or DEFAULT_INSTRUCTIONS
     voice = voice or {"openai": "alloy", "kokoro": "af_heart", "piper": "en_US-lessac-medium", "say": None}[engine]
@@ -134,7 +134,8 @@ def _synth(text, out_wav, engine="auto", voice=None, model="gpt-4o-mini-tts", in
             raise
         os.replace(tmp, raw)
     pad = pad_ms / 1000
-    af = ("silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,"
+    tp = f"atempo={tempo}," if abs(tempo - 1.0) > 1e-3 else ""  # pitch-preserving speed-up applied after synthesis (cache holds the raw take)
+    af = (tp + "silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.05,"
           "areverse,silenceremove=start_periods=1:start_threshold=-48dB:start_silence=0.08,areverse,"
           f"adelay={int(pad_ms)}:all=1,apad=pad_dur={pad}")
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", raw, "-af", af, "-ar", "44100", "-ac", "1", out_wav], check=True)

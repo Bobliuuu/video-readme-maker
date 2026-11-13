@@ -93,7 +93,7 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
         if say and not silent:
             wav = os.path.join(aud, sc["id"] + ".wav")
             used = tts.synth(say, wav, engine=eng_want, voice=vcfg.get("voice"), model=vcfg.get("model", "gpt-4o-mini-tts"),
-                             instructions=vcfg.get("instructions"), pad_ms=vcfg.get("pad_ms", 200), speed=vcfg.get("speed", 1.0))
+                             instructions=vcfg.get("instructions"), pad_ms=vcfg.get("pad_ms", 200), speed=vcfg.get("speed", 1.0), tempo=vcfg.get("tempo", 1.0))
             sc["audio"] = wav
             alen = tts.duration(wav)
         else:

@@ -23,8 +23,8 @@ const PAL = ['var(--a)', 'var(--b)', 'var(--c)', 'var(--good)', '#a78bfa', '#fb9
 const GCOL = n => ({ accent: 'var(--a)', accent2: 'var(--b)', accent3: 'var(--c)', good: 'var(--good)', muted: '#8a98ad' }[n] || n);
 function gbarSvg(t, d, m, W, H) {
   const L = 110, R = W - 30, T = 24, B = H - 150, cats = m.cats, ser = m.series;
-  const vmax = Math.max(...ser.flatMap(s => s.vals.filter(v => v !== null))) * 1.12, gw = (R - L) / cats.length, bw = Math.min(64, gw * .82 / ser.length);
-  let g = [0, 1, 2, 3, 4].map(i => `<line x1="${L}" x2="${R}" y1="${B - (B - T) * i / 4}" y2="${B - (B - T) * i / 4}" stroke="#263044"/><text x="${L - 14}" y="${B - (B - T) * i / 4 + 8}" text-anchor="end" font-size="22" fill="#8a98ad" class="mono">${(vmax * i / 4).toPrecision(2)}</text>`).join('');
+  const nice = v => { const e = Math.pow(10, Math.floor(Math.log10(v))); for (const mm of [1, 1.2, 1.6, 2, 2.5, 3, 4, 5, 6, 8, 10]) if (v <= mm * e) return mm * e; return 10 * e }; const vmax = nice(Math.max(...ser.flatMap(s => s.vals.filter(v => v !== null))) * 1.08), gw = (R - L) / cats.length, bw = Math.min(64, gw * .82 / ser.length);
+  let g = [0, 1, 2, 3, 4].map(i => `<line x1="${L}" x2="${R}" y1="${B - (B - T) * i / 4}" y2="${B - (B - T) * i / 4}" stroke="#263044"/><text x="${L - 14}" y="${B - (B - T) * i / 4 + 8}" text-anchor="end" font-size="22" fill="#8a98ad" class="mono">${+(vmax * i / 4).toPrecision(3)}</text>`).join('');
   cats.forEach((c, ci) => {
     const gx = L + gw * ci + gw / 2 - bw * ser.length / 2, kc = prog(t, .6 + ci * (Math.min(d * .5, 6) / cats.length), 1.2);
     ser.forEach((se, si) => {
@@ -33,15 +33,15 @@ function gbarSvg(t, d, m, W, H) {
     });
     g += `<text x="${L + gw * ci + gw / 2}" y="${B + 40}" text-anchor="middle" font-size="30" fill="#e6edf6" opacity="${prog(t, .4 + ci * .3)}">${esc(c)}</text>`
   });
-  let lx = L; ser.forEach((se, si) => { g += `<rect x="${lx}" y="${H - 66}" width="26" height="26" rx="5" fill="${PAL[si % 7]}"/><text x="${lx + 38}" y="${H - 44}" font-size="28" fill="#c8d3e3">${esc(se.name)}</text>`; lx += 90 + 16 * se.name.length });
+  let lx = L; ser.forEach((se, si) => { g += `<rect x="${lx}" y="${H - 66}" width="26" height="26" rx="5" fill="${PAL[si % 7]}"/><text x="${lx + 38}" y="${H - 44}" font-size="26" fill="#c8d3e3">${esc(se.name)}</text>`; lx += 74 + 14 * se.name.length });
   return g
 }
 function scatterAdvSvg(t, d, m, W, H) {
-  const L = 130, R = W - 60, T = 20, B = H - 110, lin = m.linthresh || 1;
+  const L = 130, R = W - 60, T = 20, B = H - 130, lin = m.linthresh || 1;
   const X = v => L + (R - L) * SCALE(v, m.xlim[0], m.xlim[1], m.xscale, lin), Y = v => B - (B - T) * SCALE(v, m.ylim[0], m.ylim[1], m.yscale, lin);
   let g = m.yticks.map(v => `<line x1="${L}" x2="${R}" y1="${Y(v)}" y2="${Y(v)}" stroke="#263044"/><text x="${L - 14}" y="${Y(v) + 8}" text-anchor="end" font-size="22" fill="#8a98ad" class="mono">${+v.toPrecision(3)}</text>`).join('')
     + m.xticks.map(v => `<line x1="${X(v)}" x2="${X(v)}" y1="${T}" y2="${B}" stroke="#263044" stroke-dasharray="4 8"/><text x="${X(v)}" y="${B + 34}" text-anchor="middle" font-size="22" fill="#8a98ad" class="mono">${+v.toPrecision(3)}</text>`).join('')
-    + `<text x="${(L + R) / 2}" y="${B + 76}" text-anchor="middle" font-size="26" fill="#8a98ad">${esc(m.xlabel)}</text><text x="34" y="${(T + B) / 2}" transform="rotate(-90 34 ${(T + B) / 2})" text-anchor="middle" font-size="26" fill="#8a98ad">${esc(m.ylabel)}</text>`
+    + `<text x="${(L + R) / 2}" y="${B + 70}" text-anchor="middle" font-size="26" fill="#8a98ad">${esc(m.xlabel)}</text><text x="34" y="${(T + B) / 2}" transform="rotate(-90 34 ${(T + B) / 2})" text-anchor="middle" font-size="26" fill="#8a98ad">${esc(m.ylabel)}</text>`
     + `<text x="${R - 16}" y="${B - 16}" text-anchor="end" font-size="30" font-weight="800" fill="var(--good)" opacity="${prog(t, 1)}">${esc(m.corner ? 'lower left: ' + m.corner : '')}</text>`;
   const rank = { ours: 0, accurate: 1, other: 2 }, order = [...m.pts.keys()].sort((a, b) => (rank[m.pts[a].group] ?? 3) - (rank[m.pts[b].group] ?? 3));
   order.forEach((pi, oi) => {
@@ -49,7 +49,7 @@ function scatterAdvSvg(t, d, m, W, H) {
     const f = 1.75, dx = (q.dx ?? 11) * f, dy = (q.dy ?? 4) * f;
     g += `<g opacity="${k}"><circle cx="${x}" cy="${y}" r="${(q.hl ? 20 : 13) * (.6 + .4 * k)}" fill="${col}" stroke="#0b0f17" stroke-width="3"/><text x="${x + dx}" y="${y + dy + 4}" text-anchor="${q.anchor || 'start'}" font-size="${q.hl ? 30 : 25}" font-weight="${q.hl ? 800 : 500}" fill="#e6edf6" style="paint-order:stroke;stroke:#0b0f17;stroke-width:6px">${esc(q.label)}</text></g>`
   });
-  let lx = L; Object.entries(m.group_labels).forEach(([k, lab]) => { g += `<circle cx="${lx + 12}" cy="${H - 20}" r="11" fill="${GCOL(m.group_colors[k] || 'muted')}"/><text x="${lx + 32}" y="${H - 11}" font-size="26" fill="#c8d3e3">${esc(lab)}</text>`; lx += 70 + 15 * lab.length });
+  let lx = L; Object.entries(m.group_labels).forEach(([k, lab]) => { g += `<circle cx="${lx + 12}" cy="${H - 14}" r="11" fill="${GCOL(m.group_colors[k] || 'muted')}"/><text x="${lx + 32}" y="${H - 5}" font-size="26" fill="#c8d3e3">${esc(lab)}</text>`; lx += 70 + 15 * lab.length });
   return g
 }
 
@@ -172,7 +172,7 @@ const S = {
   },
   passes(t, d, p) {
     // K separate passes over the KV pages versus one shared pass. Pure function of t.
-    const K = p.k || 8, NP = 28, W = 1680, pw = 20, gap = 4, x0 = 150, laneH = 44;
+    const K = p.k || 8, NP = 28, W = 1680, pw = 16, gap = 4, x0 = 100, laneH = 44;
     const T0 = 1.2, TT = Math.max(4, d - 4.2), u = clamp((t - T0) / TT), uL = u, uR = clamp(u * K);
     const lane = (y, prog_, label, col, qcol) => {
       let g = `<text x="0" y="${y + 29}" font-size="24" class="mono" fill="${qcol}">${label}</text>`;
