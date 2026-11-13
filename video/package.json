@@ -1,0 +1,7 @@
+{
+  "name": "video-readme-maker-render",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Headless-Chrome frame renderer for video-readme-maker",
+  "dependencies": { "puppeteer-core": "^24.0.0" }
+}

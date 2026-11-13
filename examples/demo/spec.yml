@@ -1,0 +1,151 @@
+# Demo project: a tiny real benchmark (bench.py) -> README + narrated explainer video.
+project:
+  name: dot-product-demo
+  emoji: "⚡"
+  tagline: Three ways to multiply a million numbers, measured on this machine.
+  repo: Bobliuuu/video-readme-maker
+hero:
+  title: dot-product-demo
+  subtitle: one million multiplies · three implementations
+  chips: [python loop, generator sum, numpy dot]
+theme: {accent: "#27c8e8", accent2: "#ff6b6b", accent3: "#f2c14e"}
+badges:
+  - {label: python, message: "3.12", color: 3776ab, logo: python}
+  - {label: speedup, message: "{{ n.speedup }}", color: 27c8e8}
+  - {label: built with, message: video-readme-maker, color: ff6b6b, link: "https://github.com/Bobliuuu/video-readme-maker"}
+
+numbers:   # every number in README + video traces back to a result file
+  speedup:   {file: results/bench.json, path: summary.speedup, unit: "x"}
+  elements:  {file: results/bench.json, path: summary.elements}
+  loop_ms:   {file: results/bench.json, path: runs.name=python loop.ms, unit: " ms"}
+  gen_ms:    {file: results/bench.json, path: runs.name=generator sum.ms, unit: " ms"}
+  numpy_ms:  {file: results/bench.json, path: runs.name=numpy dot.ms, unit: " ms", fmt: "{:.2f}"}
+  max_err:   {file: results/bench.json, path: summary.max_rel_err, fmt: "{:.1e}"}
+
+intro: |
+  A deliberately small project that shows the whole toolkit: a benchmark writes `results/*.json`, `spec.yml` names every number,
+  and one command produces this README and a narrated explainer video.
+
+video:
+  caption: "Explainer (about 45 s): the problem, the idea, the numbers"
+  fps: 30
+  voice: {engine: auto, voice: null}
+  scenes:
+    - type: title
+      title: dot-product-demo
+      subtitle: Three ways to multiply a million numbers
+      chips: [python loop, generator sum, numpy dot]
+      say: "Three ways to compute a dot product over {{ n.elements }} elements, measured on this machine."
+    - type: problem
+      heading: The problem
+      bullets: [Plain Python loops pay interpreter overhead on every element, A million elements means a million bytecode steps, Speed matters when this sits in a hot path]
+      say: "Plain Python pays interpreter overhead on every element. A million elements means a million trips through the interpreter."
+    - type: architecture
+      diagram: flow
+      say: "The benchmark writes its timings to a result file, and everything you see is generated from that file."
+    - type: terminal
+      heading: Run it
+      lines:
+        - {cmd: python3 bench.py}
+        - {out: wrote results}
+        - {cmd: python3 ../../vrm.py all spec.yml}
+        - {out: README.md and explainer.mp4 written}
+      say: "Two commands reproduce it."
+    - type: chart
+      chart: times
+      say: "The plain loop takes {{ n.loop_ms.numtext }} milliseconds, the generator {{ n.gen_ms.numtext }}, and the compiled dot product {{ n.numpy_ms.numtext }}."
+    - type: stat
+      number: speedup
+      kicker: numpy versus the loop
+      label: faster
+      sub: "same inputs, same answer to {{ n.max_err }} relative error"
+      say: "That is {{ n.speedup.numtext }} times faster, with the same answer up to rounding."
+    - type: chart
+      chart: scaling
+      say: "The gap holds as the input grows."
+    - type: caveats
+      heading: Honest caveats
+      bullets: [One machine and one run of the benchmark, Best of several repetitions per measurement, Timings on your hardware will differ]
+      say: "These are single machine timings, so expect different absolute numbers on yours."
+    - type: end
+      subtitle: Data in, README and video out
+      say: "Point the toolkit at your own result files to get a README and a video like this one."
+
+tables:
+  - id: runs
+    title: One million elements
+    file: results/bench.json
+    rows_path: runs
+    highlight: numpy dot
+    columns:
+      - {key: name, title: Implementation}
+      - {key: ms, title: Time, align: right, unit: " ms", fmt: "{:,.2f}"}
+      - {key: rel_err, title: Relative error, align: right, fmt: "{:.1e}"}
+charts:
+  - id: times
+    type: bar
+    title: Time for one dot product (lower is better)
+    subtitle: 1,000,000 elements
+    better: lower
+    items:
+      - {label: python loop, number: loop_ms}
+      - {label: generator sum, number: gen_ms}
+      - {label: numpy dot, number: numpy_ms, highlight: true}
+  - id: scaling
+    type: line
+    title: Time versus input size
+    xlabel: elements
+    ylabel: milliseconds
+    better: lower
+    file: results/scaling.csv
+    x: elements
+    y: ms
+    series: series
+    highlight: numpy dot
+diagrams:
+  - id: flow
+    title: From benchmark to published page
+    nodes:
+      - {id: b, label: bench.py, sub: "times three implementations", col: 0, row: 0}
+      - {id: r, label: results/*.json, sub: "single source of every number", col: 1, row: 0, kind: store}
+      - {id: s, label: spec.yml, sub: "narration, charts, tables", col: 2, row: 0}
+      - {id: g, label: vrm.py, sub: "generator", col: 3, row: 0, kind: accent}
+      - {id: o, label: "README + video", sub: "hero, charts, voice-over", col: 3, row: 1, kind: io}
+    edges:
+      - {from: b, to: r, label: writes}
+      - {from: r, to: s, label: sourced by}
+      - {from: s, to: g}
+      - {from: g, to: o}
+
+sections:
+  - title: Results
+    emoji: "📊"
+    id: results
+    highlights:
+      - {label: Speedup, number: speedup}
+      - {label: numpy dot, number: numpy_ms}
+      - {label: python loop, number: loop_ms}
+    tables: [runs]
+    charts: [times, scaling]
+  - title: How it works
+    emoji: "🧩"
+    id: architecture
+    body: "The benchmark is `bench.py`; the generator reads its output and never invents a number."
+    diagrams: [flow]
+    details:
+      - summary: Where each number comes from
+        body: "`speedup`, `numpy_ms`, `loop_ms` and friends are declared under `numbers:` in `spec.yml` with a file and a path."
+quickstart:
+  - title: Run the benchmark and build everything
+    shell: |
+      python3 bench.py
+      python3 ../../vrm.py all spec.yml
+caveats:
+  - "Timings come from one machine and one session, best of several repetitions."
+  - "Absolute numbers will differ on your hardware; the ratio is what matters."
+repo_map:
+  - {path: bench.py, desc: the benchmark that produces the result files}
+  - {path: results/, desc: "bench.json and scaling.csv: the source of every number"}
+  - {path: spec.yml, desc: "drives the README and the video"}
+  - {path: assets/, desc: "generated hero, charts, diagram, video, poster, preview gif", generated: true}
+footer: "Generated with video-readme-maker."
