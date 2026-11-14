@@ -19,7 +19,7 @@
 [![Explainer video preview (click for the mp4)](assets/preview.gif)](assets/explainer.mp4)
 
 A deliberately small project that shows the whole toolkit: a benchmark writes `results/*.json`, `spec.yml` names every number,
-and one command produces this README and a narrated explainer video.
+and one command produces this README and a captioned explainer video.
 
 <a id="results"></a>
 

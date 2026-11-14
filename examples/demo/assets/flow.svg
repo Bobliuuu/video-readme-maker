@@ -16,11 +16,11 @@
 <text x="575.0" y="142" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">single source of every number</text>
 <rect x="840" y="80" width="270" height="104" rx="12" fill="#131a26" stroke="#27c8e8" stroke-width="2"/>
 <text x="975.0" y="118" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">spec.yml</text>
-<text x="975.0" y="142" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">narration, charts, tables</text>
+<text x="975.0" y="142" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">captions, charts, tables</text>
 <rect x="1240" y="80" width="270" height="104" rx="12" fill="#131a26" stroke="#ff6b6b" stroke-width="2"/>
 <text x="1375.0" y="118" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">vrm.py</text>
 <text x="1375.0" y="142" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">generator</text>
 <rect x="1240" y="264" width="270" height="104" rx="12" fill="#131a26" stroke="#3ddc97" stroke-width="2"/>
 <text x="1375.0" y="302" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">README + video</text>
-<text x="1375.0" y="326" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">hero, charts, voice-over</text>
+<text x="1375.0" y="326" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">hero, charts, tweets</text>
 </svg>

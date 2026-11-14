@@ -2,22 +2,22 @@
 project:
   name: video-readme-maker
   emoji: "🎬"
-  tagline: Turn any project's result files into a polished README and a narrated explainer video.
+  tagline: Turn any project's result files into a polished README, a silent captioned explainer video and launch tweets.
   repo: Bobliuuu/video-readme-maker
 hero:
   title: video-readme-maker
-  subtitle: result files in · README + narrated video out
-  chips: [spec.yml, README, voice-over, captions, music]
+  subtitle: result files in · README + video + tweets out
+  chips: [spec.yml, README, captions, music, tweets]
 theme: {accent: "#27c8e8", accent2: "#ff6b6b", accent3: "#f2c14e"}
 badges:
   - {label: python, message: "3.10+", color: 3776ab, logo: python}
   - {label: node, message: "18+", color: 5fa04e, logo: nodedotjs}
-  - {label: voice, message: "OpenAI · Kokoro · say", color: 27c8e8}
+  - {label: video, message: "silent · captions · music", color: 27c8e8}
   - {label: license, message: MIT, color: f2c14e}
 intro: |
   Write one `spec.yml` that points at your result files. One command produces a GitHub README (hero, badges, nav, tables, charts, architecture diagram,
-  caveats, repo map) and a 1080p explainer video with a natural voice-over, burned-in captions, generated music ducked under the voice,
-  loudness-normalised audio, a poster and an animated GIF preview. **Every number comes from a result file; the generator fails loudly if one is missing.**
+  caveats, repo map) and a 1080p explainer video (no voice-over: burned-in captions and generated music), a poster, an animated GIF preview
+  and ready-to-post tweets (a launch thread plus standalone tweets). **Every number comes from a result file; the generator fails loudly if one is missing.**
 video:
   caption: "What the toolkit produces from `examples/demo` (under a minute)"
 sections:
@@ -32,20 +32,16 @@ sections:
       cd your-project && cp ~/video-readme-maker/examples/demo/spec.yml .     # edit it
       python3 ~/video-readme-maker/vrm.py all spec.yml     # README.md + assets/ (hero, charts, mp4, poster, gif, srt)
       ```
-      Other commands: `vrm.py readme spec.yml`, `vrm.py video spec.yml --silent` (fast, no voice), `vrm.py voices`, `vrm.py verify assets/explainer.mp4`.
+      Other commands: `vrm.py readme spec.yml`, `vrm.py video spec.yml`, `vrm.py tweets spec.yml`, `vrm.py verify assets/explainer.mp4`.
       The tiny project in [`examples/demo`](examples/demo) renders end to end in about two minutes.
-  - title: Voice
-    emoji: "🎙️"
-    id: voice
+  - title: Tweets
+    emoji: "🐦"
+    id: tweets
     body: |
-      Engines are tried in this order; narration is chunked per scene, silence-trimmed and padded with 200 ms. Audio is cached by hash of
-      engine, voice and text, so reruns are free.
-
-      | Order | Engine | Notes |
-      |---|---|---|
-      | 1 | **OpenAI TTS** (`gpt-4o-mini-tts`, voice `alloy`, calm technical-explainer style instruction) | Key from `OPENAI_API_KEY` or a key file (`~/.config/openai/api_key`); only the public narration text is sent. A 5-minute video costs a few cents. |
-      | 2 | **Kokoro-82M** local neural (`video/setup_voice.sh`, ~350 MB once) | Offline, free, natural. |
-      | 3 | macOS `say` | Best installed English voice; last resort. |
+      `vrm.py tweets spec.yml` (also run by `all`) writes `tweets.md` and `tweets.json`: a launch thread (hook with the video, problem, idea, results, caveats,
+      repo link) plus standalone tweets, one per headline number. Every number is sourced, every tweet is checked against the 280 weighted-character limit
+      (URLs count 23) and linted for IPs, keys and failed-run stories. Nothing is posted; copy from `tweets.md`.
+      Override the auto thread with a `tweets:` block (`thread: [{text, media}]`, `singles`, `hashtags`, `handle`, `out`).
   - title: spec.yml reference
     emoji: "📖"
     id: spec-reference
@@ -59,10 +55,11 @@ sections:
       | `charts` | `type: bar` (from `items` of numbers or file rows), `line` (series), `scatter` (speed versus accuracy). Pure SVG, readable on light and dark. |
       | `diagrams` | `nodes: [{id, label, sub, col, row, kind}]`, `edges: [{from, to, label}]`. |
       | `sections` | `title`, `emoji`, `body`, `highlights`, `tables`, `charts`, `diagrams`, `details`. Also `compare`, `quickstart`, `caveats`, `repo_map`. |
-      | `video` | `url` (GitHub user-attachments URL, rendered inline), `caption`, `fps`, `voice`, `music`, `max_mb`, `scenes`. |
-      | scene `type` | `title problem idea architecture chart table code terminal stat comparison results caveats end`; each has `say:` narration (templated) and its own fields. |
+      | `tweets` | Optional: `thread`, `singles`, `hashtags`, `handle`, `out`. |
+      | `video` | `url` (GitHub user-attachments URL, rendered inline), `caption`, `fps`, `music`, `max_mb`, `scenes`. |
+      | scene `type` | `title problem idea architecture chart table code terminal stat comparison results caveats end`; each has `say:` caption text (templated, shown not spoken) and its own fields. |
 
-      Every string in the spec is a Jinja template with `{% raw %}n.<name>{% endraw %}` bound to the sourced numbers, so narration, README and video always agree.
+      Every string in the spec is a Jinja template with `{% raw %}n.<name>{% endraw %}` bound to the sourced numbers, so captions, README, video and tweets always agree.
     details:
       - summary: Embedding the video on GitHub
         body: |
@@ -80,7 +77,8 @@ repo_map:
   - {path: vrm.py, desc: command line entry point}
   - {path: common/, desc: "spec loading, number tracing, leak lint"}
   - {path: readme/, desc: "README, hero, chart and diagram generators"}
-  - {path: video/, desc: "scene player, renderer, TTS engines, music"}
+  - {path: tweets/, desc: "tweet thread and standalone tweet generator"}
+  - {path: video/, desc: "scene player, renderer, music"}
   - {path: examples/demo/, desc: "tiny end-to-end project"}
   - {path: skill/SKILL.md, desc: "Claude Code skill that drives the toolkit"}
 footer: "Built with its own generator."
@@ -89,14 +87,14 @@ diagrams:
     title: spec.yml to README and video
     nodes:
       - {id: r, label: result files, sub: "JSON / CSV, one source of truth", col: 0, row: 0, kind: store}
-      - {id: s, label: spec.yml, sub: "numbers, charts, scenes, narration", col: 1, row: 0}
+      - {id: s, label: spec.yml, sub: "numbers, charts, scenes, captions", col: 1, row: 0}
       - {id: rd, label: README, sub: "hero, badges, charts, tables", col: 2, row: 0, kind: io}
-      - {id: t, label: TTS, sub: "OpenAI, Kokoro or say", col: 2, row: 1, kind: accent}
+      - {id: t, label: tweets.md, sub: "thread + standalone, sourced", col: 2, row: 1, kind: io}
       - {id: v, label: "Chrome + ffmpeg", sub: "scene frames, mix, loudnorm", col: 3, row: 1}
       - {id: o, label: explainer.mp4, sub: "captions, music, gif, poster", col: 3, row: 0, kind: io}
     edges:
       - {from: r, to: s, label: sourced}
       - {from: s, to: rd}
-      - {from: s, to: t, label: narration}
-      - {from: t, to: v, label: timings}
+      - {from: s, to: t, label: tweets}
+      - {from: s, to: v, label: scenes}
       - {from: v, to: o}

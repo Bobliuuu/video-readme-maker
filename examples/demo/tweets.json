@@ -1,0 +1,25 @@
+{
+ "thread": [
+  {
+   "text": "⚡ dot-product-demo: Three ways to multiply a million numbers, measured on this machine.\n\nSpeedup: 341.3x · numpy dot: 0.12 ms · python loop: 40.96 ms\n\nhttps://github.com/Bobliuuu/video-readme-maker",
+   "media": "assets/explainer.mp4"
+  },
+  {
+   "text": "The problem:\n• Plain Python loops pay interpreter overhead on every element\n• A million elements means a million bytecode steps\n• Speed matters when this sits in a hot path"
+  },
+  {
+   "text": "Results:\n• Speedup: 341.3x\n• numpy dot: 0.12 ms\n• python loop: 40.96 ms"
+  },
+  {
+   "text": "Honest caveats:\n• Timings come from one machine and one session, best of several repetitions.\n• Absolute numbers will differ on your hardware; the ratio is what matters."
+  },
+  {
+   "text": "Code, README and video:\n\nhttps://github.com/Bobliuuu/video-readme-maker"
+  }
+ ],
+ "singles": [
+  "⚡ dot-product-demo: Speedup = 341.3x.\n\nThree ways to multiply a million numbers, measured on this machine.\n\nhttps://github.com/Bobliuuu/video-readme-maker",
+  "⚡ dot-product-demo: numpy dot = 0.12 ms.\n\nThree ways to multiply a million numbers, measured on this machine.\n\nhttps://github.com/Bobliuuu/video-readme-maker",
+  "⚡ dot-product-demo: python loop = 40.96 ms.\n\nThree ways to multiply a million numbers, measured on this machine.\n\nhttps://github.com/Bobliuuu/video-readme-maker"
+ ]
+}

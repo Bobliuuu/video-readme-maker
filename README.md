@@ -4,11 +4,11 @@
 
 # 🎬 video-readme-maker
 
-**Turn any project's result files into a polished README and a narrated explainer video.**
+**Turn any project's result files into a polished README, a silent captioned explainer video and launch tweets.**
 
-![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white) ![node: 18+](https://img.shields.io/badge/node-18%2B-5fa04e?logo=nodedotjs&logoColor=white) ![voice: OpenAI · Kokoro · say](https://img.shields.io/badge/voice-OpenAI%20%C2%B7%20Kokoro%20%C2%B7%20say-27c8e8) ![license: MIT](https://img.shields.io/badge/license-MIT-f2c14e)
+![python: 3.10+](https://img.shields.io/badge/python-3.10%2B-3776ab?logo=python&logoColor=white) ![node: 18+](https://img.shields.io/badge/node-18%2B-5fa04e?logo=nodedotjs&logoColor=white) ![video: silent · captions · music](https://img.shields.io/badge/video-silent%20%C2%B7%20captions%20%C2%B7%20music-27c8e8) ![license: MIT](https://img.shields.io/badge/license-MIT-f2c14e)
 
-[🚀 Usage](#usage) · [🎙️ Voice](#voice) · [📖 spec.yml reference](#spec-reference) · [🧩 How it works](#how-it-works) · [⚠️ Honest caveats](#caveats) · [🗺️ Repo map](#repo-map)
+[🚀 Usage](#usage) · [🐦 Tweets](#tweets) · [📖 spec.yml reference](#spec-reference) · [🧩 How it works](#how-it-works) · [⚠️ Honest caveats](#caveats) · [🗺️ Repo map](#repo-map)
 
 </div>
 
@@ -19,8 +19,8 @@
 [![Explainer video preview (click for the mp4)](assets/preview.gif)](assets/explainer.mp4)
 
 Write one `spec.yml` that points at your result files. One command produces a GitHub README (hero, badges, nav, tables, charts, architecture diagram,
-caveats, repo map) and a 1080p explainer video with a natural voice-over, burned-in captions, generated music ducked under the voice,
-loudness-normalised audio, a poster and an animated GIF preview. **Every number comes from a result file; the generator fails loudly if one is missing.**
+caveats, repo map) and a 1080p explainer video (no voice-over: burned-in captions and generated music), a poster, an animated GIF preview
+and ready-to-post tweets (a launch thread plus standalone tweets). **Every number comes from a result file; the generator fails loudly if one is missing.**
 
 <a id="usage"></a>
 
@@ -33,21 +33,17 @@ pip install -r ~/video-readme-maker/requirements.txt
 cd your-project && cp ~/video-readme-maker/examples/demo/spec.yml .     # edit it
 python3 ~/video-readme-maker/vrm.py all spec.yml     # README.md + assets/ (hero, charts, mp4, poster, gif, srt)
 ```
-Other commands: `vrm.py readme spec.yml`, `vrm.py video spec.yml --silent` (fast, no voice), `vrm.py voices`, `vrm.py verify assets/explainer.mp4`.
+Other commands: `vrm.py readme spec.yml`, `vrm.py video spec.yml`, `vrm.py tweets spec.yml`, `vrm.py verify assets/explainer.mp4`.
 The tiny project in [`examples/demo`](examples/demo) renders end to end in about two minutes.
 
-<a id="voice"></a>
+<a id="tweets"></a>
 
-## 🎙️ Voice
+## 🐦 Tweets
 
-Engines are tried in this order; narration is chunked per scene, silence-trimmed and padded with 200 ms. Audio is cached by hash of
-engine, voice and text, so reruns are free.
-
-| Order | Engine | Notes |
-|---|---|---|
-| 1 | **OpenAI TTS** (`gpt-4o-mini-tts`, voice `alloy`, calm technical-explainer style instruction) | Key from `OPENAI_API_KEY` or a key file (`~/.config/openai/api_key`); only the public narration text is sent. A 5-minute video costs a few cents. |
-| 2 | **Kokoro-82M** local neural (`video/setup_voice.sh`, ~350 MB once) | Offline, free, natural. |
-| 3 | macOS `say` | Best installed English voice; last resort. |
+`vrm.py tweets spec.yml` (also run by `all`) writes `tweets.md` and `tweets.json`: a launch thread (hook with the video, problem, idea, results, caveats,
+repo link) plus standalone tweets, one per headline number. Every number is sourced, every tweet is checked against the 280 weighted-character limit
+(URLs count 23) and linted for IPs, keys and failed-run stories. Nothing is posted; copy from `tweets.md`.
+Override the auto thread with a `tweets:` block (`thread: [{text, media}]`, `singles`, `hashtags`, `handle`, `out`).
 
 <a id="spec-reference"></a>
 
@@ -62,10 +58,11 @@ engine, voice and text, so reruns are free.
 | `charts` | `type: bar` (from `items` of numbers or file rows), `line` (series), `scatter` (speed versus accuracy). Pure SVG, readable on light and dark. |
 | `diagrams` | `nodes: [{id, label, sub, col, row, kind}]`, `edges: [{from, to, label}]`. |
 | `sections` | `title`, `emoji`, `body`, `highlights`, `tables`, `charts`, `diagrams`, `details`. Also `compare`, `quickstart`, `caveats`, `repo_map`. |
-| `video` | `url` (GitHub user-attachments URL, rendered inline), `caption`, `fps`, `voice`, `music`, `max_mb`, `scenes`. |
-| scene `type` | `title problem idea architecture chart table code terminal stat comparison results caveats end`; each has `say:` narration (templated) and its own fields. |
+| `tweets` | Optional: `thread`, `singles`, `hashtags`, `handle`, `out`. |
+| `video` | `url` (GitHub user-attachments URL, rendered inline), `caption`, `fps`, `music`, `max_mb`, `scenes`. |
+| scene `type` | `title problem idea architecture chart table code terminal stat comparison results caveats end`; each has `say:` caption text (templated, shown not spoken) and its own fields. |
 
-Every string in the spec is a Jinja template with `n.<name>` bound to the sourced numbers, so narration, README and video always agree.
+Every string in the spec is a Jinja template with `n.<name>` bound to the sourced numbers, so captions, README, video and tweets always agree.
 
 <details>
 <summary>Embedding the video on GitHub</summary>
@@ -98,7 +95,8 @@ the animated GIF preview, which links to the mp4.
 | `vrm.py` | command line entry point |
 | `common/` | spec loading, number tracing, leak lint |
 | `readme/` | README, hero, chart and diagram generators |
-| `video/` | scene player, renderer, TTS engines, music |
+| `tweets/` | tweet thread and standalone tweet generator |
+| `video/` | scene player, renderer, music |
 | `examples/demo/` | tiny end-to-end project |
 | `skill/SKILL.md` | Claude Code skill that drives the toolkit |
 

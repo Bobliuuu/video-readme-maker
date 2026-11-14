@@ -1,0 +1,132 @@
+"""spec.yml -> ready-to-post tweets (tweets.md + tweets.json): a launch thread plus standalone single tweets.
+
+Every number comes from the spec's sourced numbers. Optional spec block (all strings are Jinja templates, `n.<name>` bound):
+
+tweets:
+  out: tweets.md            # default; tweets.json written beside it
+  hashtags: [opensource]    # appended to the hook tweet only
+  handle: ""                # optional @handle to credit
+  thread:                   # explicit thread; omit to auto-generate from tagline, highlights, problem/idea scenes, caveats
+    - {text: "...", media: assets/explainer.mp4}
+  singles: ["...", "..."]   # extra standalone tweets (auto: one per highlight if omitted)
+
+Limits: 280 weighted chars, every URL counts 23. Over-limit explicit tweets raise SpecError; auto tweets are trimmed at a word boundary.
+"""
+import json, os, re
+from common.spec import Spec, SpecError
+from common import leaks
+
+LIMIT, URL_LEN = 280, 23
+URL_RX = re.compile(r"https?://\S+")
+
+
+def weight(text):
+    """Approximate X weighted length: URLs = 23, other chars 1 (emoji/CJK = 2)."""
+    n, rest = 0, text
+    for m in URL_RX.findall(text):
+        n += URL_LEN; rest = rest.replace(m, "", 1)
+    for ch in rest:
+        n += 2 if ord(ch) > 0x2E7F else 1
+    return n
+
+
+def trim(text, limit=LIMIT):
+    if weight(text) <= limit:
+        return text
+    words = text.split(" ")
+    while words and weight(" ".join(words) + "…") > limit:
+        words.pop()
+    return " ".join(words).rstrip(",;:- ") + "…"
+
+
+def _fit(parts, tail=""):
+    """Join paragraph parts, dropping the last ones until it fits (tail e.g. a URL is always kept)."""
+    parts = [p for p in parts if p]
+    while parts:
+        t = "\n\n".join(parts + ([tail] if tail else []))
+        if weight(t) <= LIMIT:
+            return t
+        if len(parts) == 1:
+            return trim(parts[0], LIMIT - (weight(tail) + 2 if tail else 0)) + ("\n\n" + tail if tail else "")
+        parts = parts[:-1]
+    return tail
+
+
+def auto(sp):
+    d, R = sp.d, sp.render
+    proj = d["project"]
+    repo = proj.get("repo")
+    url = f"https://github.com/{repo}" if repo else ""
+    tw = d.get("tweets", {}) or {}
+    tags = " ".join("#" + h.lstrip("#") for h in tw.get("hashtags", []) or [])
+    media = (d.get("video") or {}).get("mp4", f"{d.get('assets_dir', 'assets')}/explainer.mp4")
+    hl = []
+    for s in d.get("sections", []) or []:
+        for x in s.get("highlights", []) or []:
+            hl.append((R(x["label"]), sp.num(x["number"]).text))
+    scenes = (d.get("video") or {}).get("scenes", []) or []
+
+    def bullets(kind):
+        for s in scenes:
+            if s["type"] == kind and s.get("bullets"):
+                return [R(b) for b in s["bullets"]]
+        return []
+
+    hook = _fit([f"{proj.get('emoji', '')} {proj['name']}: {R(proj['tagline'])}".strip(),
+                 " · ".join(f"{l}: {v}" for l, v in hl[:3]), tags], url)
+    thread = [{"text": hook, "media": media}]
+    prob, idea = bullets("problem"), bullets("idea")
+    if prob:
+        thread.append({"text": _fit(["The problem:\n" + "\n".join("• " + b for b in prob[:3])])})
+    if idea:
+        thread.append({"text": _fit(["The idea:\n" + "\n".join("• " + b for b in idea[:3])])})
+    if hl:
+        thread.append({"text": _fit(["Results:\n" + "\n".join(f"• {l}: {v}" for l, v in hl[:5])])})
+    cav = [R(c) for c in d.get("caveats", []) or []]
+    if cav:
+        thread.append({"text": _fit(["Honest caveats:\n" + "\n".join("• " + c for c in cav[:2])])})
+    if url:
+        thread.append({"text": _fit(["Code, README and video:"], url)})
+    singles = [_fit([f"{proj.get('emoji', '')} {proj['name']}: {l} = {v}.".strip(), R(proj["tagline"])], url) for l, v in hl[:3]]
+    return thread, singles
+
+
+def build(spec_path, check=True):
+    sp = Spec(spec_path)
+    d, R, root = sp.d, sp.render, sp.root
+    tw = d.get("tweets", {}) or {}
+    if tw.get("thread"):
+        thread = [{"text": R(t["text"]).strip(), "media": t.get("media")} if isinstance(t, dict) else {"text": R(t).strip()} for t in tw["thread"]]
+        over = [i + 1 for i, t in enumerate(thread) if weight(t["text"]) > LIMIT]
+        if over:
+            raise SpecError(f"tweets.thread: tweet(s) {over} exceed {LIMIT} weighted chars")
+        singles = []
+    else:
+        thread, singles = auto(sp)
+    if tw.get("singles"):
+        singles = [R(t).strip() for t in tw["singles"]]
+        over = [i + 1 for i, t in enumerate(singles) if weight(t) > LIMIT]
+        if over:
+            raise SpecError(f"tweets.singles: tweet(s) {over} exceed {LIMIT} weighted chars")
+    if tw.get("handle"):
+        thread[0]["text"] = _fit([thread[0]["text"].split("\n\n")[0], f"by {tw['handle']}"] + thread[0]["text"].split("\n\n")[1:])
+    texts = [t["text"] for t in thread] + singles
+    if check:
+        leaks.check_public(texts, "tweets")
+    md = ["# Tweets", "", "<sub>Generated by `vrm.py tweets`; numbers come from the sourced result files. Attach the listed media (X takes mp4/gif/png, not svg).</sub>", "", "## Thread", ""]
+    for i, t in enumerate(thread, 1):
+        md += [f"**{i}/{len(thread)}** · {weight(t['text'])}/{LIMIT}" + (f" · media: `{t['media']}`" if t.get("media") else ""), "", "```text", t["text"], "```", ""]
+    if singles:
+        md += ["## Standalone tweets", ""]
+        for i, t in enumerate(singles, 1):
+            md += [f"**{i}** · {weight(t)}/{LIMIT}", "", "```text", t, "```", ""]
+    out = os.path.join(root, tw.get("out", "tweets.md"))
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+    open(out, "w").write("\n".join(md))
+    js = os.path.splitext(out)[0] + ".json"
+    json.dump({"thread": thread, "singles": singles}, open(js, "w"), indent=1, ensure_ascii=False)
+    if check:
+        ok, o = leaks.external_scan([out, js])
+        if not ok:
+            raise leaks.LeakError("scan_leaks.sh flagged tweets:\n" + o)
+    return [out, js]

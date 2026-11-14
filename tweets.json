@@ -1,0 +1,15 @@
+{
+ "thread": [
+  {
+   "text": "🎬 video-readme-maker: Turn any project's result files into a polished README, a silent captioned explainer video and launch tweets.\n\nhttps://github.com/Bobliuuu/video-readme-maker",
+   "media": "assets/explainer.mp4"
+  },
+  {
+   "text": "Honest caveats:\n• Frame rendering uses headless Chrome plus ffmpeg, so both must be installed; a 45 s video renders in about two minutes on a laptop.\n• The preview GIF is a time-compressed overview, not real-time."
+  },
+  {
+   "text": "Code, README and video:\n\nhttps://github.com/Bobliuuu/video-readme-maker"
+  }
+ ],
+ "singles": []
+}

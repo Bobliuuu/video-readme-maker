@@ -1,14 +1,14 @@
-"""spec.yml -> narrated explainer video (+ srt, poster, preview gif). Scene durations derive from the narration audio."""
+"""spec.yml -> silent explainer video with burned-in captions + music (+ srt, poster, preview gif). No voice-over: scene durations derive from caption reading time."""
 import json, os, re, shutil, subprocess, sys, wave
 import numpy as np
 from common.spec import Spec, SpecError
 from common import leaks
 from readme.theme import theme
-from . import tts
 from .make_music import make_music, SR
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LEAD, TAIL, MIN_DUR = 0.4, 0.6, 2.8
+LEAD, TAIL, MIN_DUR = 0.4, 0.9, 2.8
+WPS = 2.6  # caption reading speed, words/second
 
 
 def movavg(x, k):
@@ -72,7 +72,7 @@ def srt_time(x):
     return f"{h:02d}:{m:02d}:{s:06.3f}".replace(".", ",")
 
 
-def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reuse_data=False):
+def build(spec_path, skip_render=False, fps=None, reuse_data=False):
     sp = Spec(spec_path)
     d = sp.d
     V = d["video"]
@@ -84,20 +84,10 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
     scenes = [resolve_scene(sp, s, i + 1) for i, s in enumerate(V["scenes"])]
     leaks.check_public([sc.get("say", "") for sc in scenes], "narration")
 
-    vcfg = V.get("voice", {}) or {}
-    eng_want = engine or vcfg.get("engine", "auto")
-    used = None
     for sc in scenes:
-        say = (sc.get("say") or "").strip()
+        say = (sc.get("say") or "").strip()  # caption text (burned in + .srt); never spoken
         sc["lead"] = LEAD
-        if say and not silent:
-            wav = os.path.join(aud, sc["id"] + ".wav")
-            used = tts.synth(say, wav, engine=eng_want, voice=vcfg.get("voice"), model=vcfg.get("model", "gpt-4o-mini-tts"),
-                             instructions=vcfg.get("instructions"), pad_ms=vcfg.get("pad_ms", 200), speed=vcfg.get("speed", 1.0), tempo=vcfg.get("tempo", 1.0))
-            sc["audio"] = wav
-            alen = tts.duration(wav)
-        else:
-            alen = (len(say.split()) / 2.7) if say else 0
+        alen = (len(say.split()) / WPS) if say else 0
         sc["alen"] = alen
         sc["dur"] = round(max(sc.get("min_dur", MIN_DUR), LEAD + alen + TAIL), 2)
         chunks = split_caption(say) if say else []
@@ -107,8 +97,6 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
             w = alen * len(c) / tot
             caps.append({"t0": round(t0, 3), "t1": round(t0 + w, 3), "text": c}); t0 += w
         sc["caps"] = caps
-    if used:
-        print(f"[voice] engine={used}")
     st = 0.0
     for sc in scenes:
         sc["start"] = st; st += sc["dur"]
@@ -143,27 +131,11 @@ def build(spec_path, silent=False, engine=None, skip_render=False, fps=None, reu
     poster_src = [f for f in os.listdir(os.path.join(out, "stills"))][0]
     shutil.copy(os.path.join(out, "stills", poster_src), poster_out)
 
-    # ---- audio: voice track + ducked generated music
-    voice = np.zeros(int((total + 1) * SR), dtype=np.float32)
-    for sc in scenes:
-        if sc.get("audio"):
-            with wave.open(sc["audio"]) as w:
-                x = np.frombuffer(w.readframes(w.getnframes()), dtype="<i2").astype(np.float32) / 32768
-            s0 = int((sc["start"] + sc["lead"] - 0.2) * SR)  # tts wav already carries 0.2s pad
-            s0 = max(0, s0)
-            voice[s0:s0 + len(x)] += x[:len(voice) - s0]
-    mix = None
-    mus = V.get("music", True)
-    if mus:
+    # ---- audio: generated music only (no voice-over)
+    mix = np.zeros((2, int((total + 1) * SR)), dtype=np.float32)
+    if V.get("music", True):
         m = make_music(total + 1, seed=d["project"]["name"])
-        env = movavg(np.abs(voice), int(.25 * SR))
-        env = np.clip(env / (np.percentile(env, 95) + 1e-9), 0, 1)
-        env = movavg(env, int(.4 * SR))
-        gain = (0.20 if used else 0.55) * (1 - 0.8 * np.clip(env, 0, 1))  # music sits ~ -14 dB, ducked a further ~14 dB under speech
-        mix = m * gain[None, :m.shape[1]]
-    if mix is None:
-        mix = np.zeros((2, len(voice)), dtype=np.float32)
-    mix[:, :len(voice)] += voice[None, :] * 0.9
+        mix[:, :m.shape[1]] = m[:, :mix.shape[1]] * 0.55
     mix = np.clip(mix, -1, 1)
     mw = os.path.join(out, "mix.wav")
     with wave.open(mw, "wb") as w:

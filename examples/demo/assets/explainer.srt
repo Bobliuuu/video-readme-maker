@@ -1,44 +1,44 @@
 1
-00:00:00,400 --> 00:00:05,662
+00:00:00,400 --> 00:00:05,785
 Three ways to compute a dot product over 1,000,000 elements, measured on this machine.
 
 2
-00:00:06,660 --> 00:00:10,263
+00:00:07,080 --> 00:00:10,284
 Plain Python pays interpreter overhead on every element.
 
 3
-00:00:10,263 --> 00:00:14,444
+00:00:10,284 --> 00:00:14,003
 A million elements means a million trips through the interpreter.
 
 4
-00:00:15,440 --> 00:00:21,088
+00:00:15,300 --> 00:00:21,538
 The benchmark writes its timings to a result file, and everything you see is generated from
 
 5
-00:00:21,088 --> 00:00:21,708
+00:00:21,538 --> 00:00:22,223
 that file.
 
 6
-00:00:22,710 --> 00:00:24,575
+00:00:23,520 --> 00:00:25,058
 Two commands reproduce it.
 
 7
-00:00:25,580 --> 00:00:34,667
+00:00:26,360 --> 00:00:32,129
 The plain loop takes 40.96 milliseconds, the generator 32.22, and the compiled dot product 0.12.
 
 8
-00:00:35,670 --> 00:00:41,473
+00:00:33,430 --> 00:00:38,045
 That is 341.3 times faster, with the same answer up to rounding.
 
 9
-00:00:42,470 --> 00:00:44,805
+00:00:39,350 --> 00:00:42,042
 The gap holds as the input grows.
 
 10
-00:00:45,800 --> 00:00:50,844
+00:00:43,340 --> 00:00:47,955
 These are single machine timings, so expect different absolute numbers on yours.
 
 11
-00:00:51,840 --> 00:00:56,916
+00:00:49,260 --> 00:00:56,183
 Point the toolkit at your own result files to get a README and a video like this one.
 

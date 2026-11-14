@@ -1,4 +1,4 @@
-# Demo project: a tiny real benchmark (bench.py) -> README + narrated explainer video.
+# Demo project: a tiny real benchmark (bench.py) -> README + captioned explainer video.
 project:
   name: dot-product-demo
   emoji: "⚡"
@@ -24,12 +24,12 @@ numbers:   # every number in README + video traces back to a result file
 
 intro: |
   A deliberately small project that shows the whole toolkit: a benchmark writes `results/*.json`, `spec.yml` names every number,
-  and one command produces this README and a narrated explainer video.
+  and one command produces this README and a captioned explainer video.
 
 video:
   caption: "Explainer (under a minute): the problem, the idea, the numbers"
   fps: 30
-  voice: {engine: auto, voice: null}
+  music: true
   scenes:
     - type: title
       title: dot-product-demo
@@ -108,9 +108,9 @@ diagrams:
     nodes:
       - {id: b, label: bench.py, sub: "times three implementations", col: 0, row: 0}
       - {id: r, label: results/*.json, sub: "single source of every number", col: 1, row: 0, kind: store}
-      - {id: s, label: spec.yml, sub: "narration, charts, tables", col: 2, row: 0}
+      - {id: s, label: spec.yml, sub: "captions, charts, tables", col: 2, row: 0}
       - {id: g, label: vrm.py, sub: "generator", col: 3, row: 0, kind: accent}
-      - {id: o, label: "README + video", sub: "hero, charts, voice-over", col: 3, row: 1, kind: io}
+      - {id: o, label: "README + video", sub: "hero, charts, tweets", col: 3, row: 1, kind: io}
     edges:
       - {from: b, to: r, label: writes}
       - {from: r, to: s, label: sourced by}

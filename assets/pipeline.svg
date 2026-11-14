@@ -6,9 +6,9 @@
 <text x="375" y="124" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">sourced</text>
 <polyline points="710,132 775,132 775,132 840,132" fill="none" stroke="#8a98ad" stroke-width="2.2" marker-end="url(#ah)"/>
 <polyline points="710,132 775,132 775,316 840,316" fill="none" stroke="#8a98ad" stroke-width="2.2" marker-end="url(#ah)"/>
-<text x="775" y="216" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">narration</text>
-<polyline points="1110,316 1175,316 1175,316 1240,316" fill="none" stroke="#8a98ad" stroke-width="2.2" marker-end="url(#ah)"/>
-<text x="1175" y="308" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">timings</text>
+<text x="775" y="216" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">tweets</text>
+<polyline points="710,132 975,132 975,316 1240,316" fill="none" stroke="#8a98ad" stroke-width="2.2" marker-end="url(#ah)"/>
+<text x="975" y="216" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">scenes</text>
 <polyline points="1375,264 1375,184" fill="none" stroke="#8a98ad" stroke-width="2.2" marker-end="url(#ah)"/>
 <rect x="40" y="80" width="270" height="104" rx="12" fill="#131a26" stroke="#f2c14e" stroke-width="2"/>
 <text x="175.0" y="118" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">result files</text>
@@ -16,13 +16,13 @@
 <rect x="440" y="80" width="270" height="104" rx="12" fill="#131a26" stroke="#27c8e8" stroke-width="2"/>
 <text x="575.0" y="118" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">spec.yml</text>
 <text x="575.0" y="142" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">numbers, charts, scenes,</text>
-<text x="575.0" y="160" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">narration</text>
+<text x="575.0" y="160" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">captions</text>
 <rect x="840" y="80" width="270" height="104" rx="12" fill="#131a26" stroke="#3ddc97" stroke-width="2"/>
 <text x="975.0" y="118" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">README</text>
 <text x="975.0" y="142" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">hero, badges, charts, tables</text>
-<rect x="840" y="264" width="270" height="104" rx="12" fill="#131a26" stroke="#ff6b6b" stroke-width="2"/>
-<text x="975.0" y="302" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">TTS</text>
-<text x="975.0" y="326" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">OpenAI, Kokoro or say</text>
+<rect x="840" y="264" width="270" height="104" rx="12" fill="#131a26" stroke="#3ddc97" stroke-width="2"/>
+<text x="975.0" y="302" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">tweets.md</text>
+<text x="975.0" y="326" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">thread + standalone, sourced</text>
 <rect x="1240" y="264" width="270" height="104" rx="12" fill="#131a26" stroke="#27c8e8" stroke-width="2"/>
 <text x="1375.0" y="302" text-anchor="middle" font-family="ui-sans-serif,system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" font-weight="700" font-size="19" fill="#e6edf6">Chrome + ffmpeg</text>
 <text x="1375.0" y="326" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="13" fill="#8a98ad">scene frames, mix, loudnorm</text>
