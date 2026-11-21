@@ -57,6 +57,7 @@ Override the auto thread with a `tweets:` block (`thread: [{text, media}]`, `sin
 | `tables` | `file`, `rows_path`, `columns: [{key, title, unit, fmt, align}]`, `highlight`. Source line is added automatically. |
 | `charts` | `type: bar` (from `items` of numbers or file rows), `line` (series), `scatter` (speed versus accuracy). Pure SVG, readable on light and dark. |
 | `diagrams` | `nodes: [{id, label, sub, col, row, kind}]`, `edges: [{from, to, label}]`. |
+| `sections_dir` | Folder of verbatim `NN-name.md` files, each starting `# emoji Title`; each becomes a README section, new files are picked up automatically. |
 | `sections` | `title`, `emoji`, `body`, `highlights`, `tables`, `charts`, `diagrams`, `details`. Also `compare`, `quickstart`, `caveats`, `repo_map`. |
 | `tweets` | Optional: `thread`, `singles`, `hashtags`, `handle`, `out`. |
 | `video` | `url` (GitHub user-attachments URL, rendered inline), `caption`, `fps`, `music`, `max_mb`, `scenes`. |
