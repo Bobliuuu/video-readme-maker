@@ -101,6 +101,21 @@ def build(spec_path, check=True):
         nav.append((emoji, ttl, sid))
         secs.append(f'<a id="{sid}"></a>\n\n## {emoji} {ttl}\n\n{content}')
 
+    sdir = d.get("sections_dir")  # verbatim markdown files NN-name.md; first line "# [emoji] Title"; new files appear automatically
+    if sdir:
+        import glob
+        for fp in sorted(glob.glob(os.path.join(root, sdir, "*.md"))):
+            txt = open(fp).read().strip()
+            m = re.match(r"#{1,2}\s+(.+)\n", txt + "\n")
+            if not m:
+                raise SpecError(f"{fp}: first line must be '# Title'")
+            ttl = m.group(1).strip()
+            em = ""
+            m2 = re.match(r"^(\S+)\s+(.*)$", ttl)
+            if m2 and not re.match(r"^[\w(]", m2.group(1)):
+                em, ttl = m2.group(1), m2.group(2)
+            sid = re.sub(r"[^a-z0-9]+", "-", ttl.lower()).strip("-")
+            add(sid, em, ttl, txt[m.end():].strip())
     for s in d.get("sections", []) or []:
         sid = s.get("id") or re.sub(r"[^a-z0-9]+", "-", s["title"].lower()).strip("-")
         add(sid, s.get("emoji", ""), R(s["title"]), render_section(s))
